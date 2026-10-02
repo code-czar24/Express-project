@@ -45,8 +45,26 @@ function cacheMiddleware(req, res, next) {
   next();
 }
 
+// Invalidation middleware for POST, PUT, PATCH, DELETE requests
+function invalidateCache(req, res, next) {
+  const mutationMethods = ['POST', 'PUT', 'PATCH', 'DELETE'];
+
+  if (mutationMethods.includes(req.method)) {
+    // Wait until response completes to verify success before clearing cache
+    res.on('finish', () => {
+      if (res.statusCode >= 200 && res.statusCode < 300) {
+        // Clear all cached keys when data is modified
+        cacheStore.clear();
+      }
+    });
+  }
+
+  next();
+}
+
 module.exports = {
   cacheMiddleware,
+  invalidateCache,
   cacheStore,
   TTL
 };
